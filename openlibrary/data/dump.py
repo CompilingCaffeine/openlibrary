@@ -64,6 +64,9 @@ def print_dump(json_records, filter=None):
             continue
 
         type_key = d["type"]["key"]
+        if type_key == "/type/work" and d.get("authors"):
+            # Older works can contain author roles without an author reference.
+            d["authors"] = [role for role in d["authors"] if isinstance(role, dict) and isinstance(role.get("author"), dict) and "key" in role["author"]]
         timestamp = d["last_modified"]["value"]
         json_data = json.dumps(d)
 

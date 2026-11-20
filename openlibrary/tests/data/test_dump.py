@@ -1,6 +1,8 @@
 import json
 import string
 
+import pytest
+
 from openlibrary.data.dump import pgdecode, print_dump
 
 
@@ -32,6 +34,36 @@ class TestPrintDump:
                 ),
             ]
         )
+
+    @pytest.mark.parametrize(
+        ("key", "type_key", "authors", "expected"),
+        [
+            (
+                "/works/OL1W",
+                "/type/work",
+                [
+                    {"author": {"key": "/authors/OL2A"}, "role": "editor"},
+                    {"type": {"key": "/type/author_role"}},
+                    {"author": {}},
+                    {"author": {"key": "/authors/OL1A"}},
+                ],
+                [{"author": {"key": "/authors/OL2A"}, "role": "editor"}, {"author": {"key": "/authors/OL1A"}}],
+            ),
+            ("/works/OL1W", "/type/work", [{"type": {"key": "/type/author_role"}}], []),
+            ("/books/OL1M", "/type/edition", [{"key": "/authors/OL1A"}], [{"key": "/authors/OL1A"}]),
+        ],
+    )
+    def test_exported_authors(self, capsys, key, type_key, authors, expected):
+        record = {
+            "key": key,
+            "type": {"key": type_key},
+            "authors": authors,
+            "revision": 1,
+            "last_modified": {"value": "2019-01-01T00:00:00.000"},
+        }
+        print_dump([json.dumps(record)])
+        document = json.loads(capsys.readouterr().out.split("\t", 4)[4])
+        assert document["authors"] == expected
 
     def test_excludes_sensitive_pages(self, capsys):
         records = [
